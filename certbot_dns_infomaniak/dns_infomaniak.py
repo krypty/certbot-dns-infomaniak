@@ -14,7 +14,31 @@ try:
 except ImportError:
     import os
 
+from time import sleep
+from functools import update_wrapper, partial
+
 logger = logging.getLogger(__name__)
+
+
+class TooManyRequestsError(Exception):
+    pass
+
+
+class ApiLimiter:
+    def __init__(self, function):
+        update_wrapper(self, function)
+        self._function = function
+
+    def __get__(self, obj, objtype):
+        return partial(self.__call__, obj)
+
+    def __call__(self, *args, **kwargs):
+        while True:
+            try:
+                return self._function(*args, **kwargs)
+            except TooManyRequestsError:
+                logger.debug("Too many requests. Retrying in about 1 min...")
+                sleep(65)
 
 
 @zope.interface.implementer(interfaces.IAuthenticator)
@@ -89,6 +113,7 @@ class _APIDomain:
         self.session = requests.Session()
         self.session.headers.update({"Authorization": "Bearer {token}".format(token=self.token)})
 
+    @ApiLimiter
     def _get_request(self, url, payload=None):
         """Performs a GET request against API
 
@@ -106,12 +131,15 @@ class _APIDomain:
                 return result["data"]
             if result["code"] == "not_authorized":
                 raise errors.PluginError("cannot authenticate")
+            if result["code"] == "too_many_requests":
+                raise TooManyRequestsError
             raise errors.PluginError(
                 "error in API request: {} / {}".format(
                     result["code"], result["description"]
                 )
             )
 
+    @ApiLimiter
     def _post_request(self, url, payload):
         """Performs a POST request
 
@@ -129,12 +157,15 @@ class _APIDomain:
                 return result["data"]
             if result["code"] == "not_authorized":
                 raise errors.PluginError("cannot authenticate")
+            if result["code"] == "too_many_requests":
+                raise TooManyRequestsError
             raise errors.PluginError(
                 "error in API request: {} / {}".format(
                     result["code"], result["description"]
                 )
             )
 
+    @ApiLimiter
     def _delete_request(self, url):
         """Performs a POST request
 
@@ -151,6 +182,8 @@ class _APIDomain:
                 return result["data"]
             if result["code"] == "not_authorized":
                 raise errors.PluginError("cannot authenticate")
+            if result["code"] == "too_many_requests":
+                raise TooManyRequestsError
             raise errors.PluginError(
                 "error in API request: {} / {}".format(
                     result["code"], result["description"]

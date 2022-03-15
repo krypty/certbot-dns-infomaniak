@@ -113,7 +113,7 @@ class APIDomainTest(unittest.TestCase):
         :param int code: error code
         :param str description: error description
         """
-        resp = {"result": "error", "error": {"code": code, "description": description}}
+        resp = {"result": "error", "code": code, "description": description}
         self.adapter.register_uri(
             requests_mock.ANY,
             self.client.baseUrl + url,

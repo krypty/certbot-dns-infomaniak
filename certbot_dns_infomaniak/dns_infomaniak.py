@@ -104,11 +104,11 @@ class _APIDomain:
                 raise errors.PluginError("no JSON in API response") from exc
             if result["result"] == "success":
                 return result["data"]
-            if result["error"]["code"] == "not_authorized":
+            if result["code"] == "not_authorized":
                 raise errors.PluginError("cannot authenticate")
             raise errors.PluginError(
                 "error in API request: {} / {}".format(
-                    result["error"]["code"], result["error"]["description"]
+                    result["code"], result["description"]
                 )
             )
 
@@ -129,7 +129,7 @@ class _APIDomain:
                 return result["data"]
             raise errors.PluginError(
                 "error in API request: {} / {}".format(
-                    result["error"]["code"], result["error"]["description"]
+                    result["code"], result["description"]
                 )
             )
 
@@ -149,7 +149,7 @@ class _APIDomain:
                 return result["data"]
             raise errors.PluginError(
                 "error in API request: {} / {}".format(
-                    result["error"]["code"], result["error"]["description"]
+                    result["code"], result["description"]
                 )
             )
 
